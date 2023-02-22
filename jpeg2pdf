@@ -1,0 +1,46 @@
+#!/bin/bash
+# A simple script to orient jpegs and then merge them into a pdf
+# Dependencies: imagemagick 
+
+echo Handling exif orientation
+mogrify -orient right-top *.jpg
+
+echo Processing in batches, to avoid image magick memory problem
+let batch_num=0;
+let batch_size=0;
+batch_arguments="";
+
+for item in *.jpg
+do
+    if [[ $batch_size -eq 0 ]];
+    then
+        batch_arguments="$item"
+    else
+        batch_arguments="$batch_arguments $item"
+    fi
+    
+    let batch_size=$batch_size+1;
+
+    if [[ $batch_size -eq "10" ]];
+    then
+        echo Batch $batch_num, arguments: $batch_arguments
+        convert $batch_arguments $batch_num.pdf
+        let batch_num=$batch_num+1;
+        batch_arguments="";
+        let batch_size=0;
+    fi
+done
+
+if [ $batch_size -ne "0" ];
+then
+    convert $batch_arguments $batch_num.pdf
+fi
+
+echo Joining all pdfs
+pdfunite *.pdf merged.pdf
+
+echo Deleting artifacts
+mv merged.pdf merged.pdf.tmp
+rm *.pdf
+mv merged.pdf.tmp merged.pdf
+
